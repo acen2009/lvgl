@@ -1,9 +1,10 @@
-#include "lv_vortex86.h"
+#include "lv_86duino.h"
 
-#if LV_USE_VORTEX86
+#if LV_USE_86DUINO
+#include "v86board.h"
 #include "../src/display/lv_display_private.h"
-#include "drivers/vortex86/a9160.h"
-#include "drivers/vortex86/lcd.h"
+#include "drivers/86duino/a9160.h"
+#include "drivers/86duino/lcd.h"
 #include <sys/farptr.h>
 
 #if (LV_COLOR_DEPTH == 8)
@@ -78,7 +79,7 @@ static void fbFastWrite(int sr, unsigned long offset, void *img, size_t img_size
     }
 }
 
-void vortex86_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
+void _86duino_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
     unsigned long area_x, draw_size, screen_width_size, offset, height;
     int *selector = (int*)lv_display_get_user_data(disp);
 
@@ -106,21 +107,21 @@ void vortex86_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_
     lv_display_flush_ready(disp); /* tell lvgl that flushing is done */
 }
 
-lv_display_t * lv_vortex86_vga_create(int32_t hor_res, int32_t ver_res, void *draw_buf, uint32_t buf_size_bytes) {
+lv_display_t * lv_86duino_vga_create(int32_t hor_res, int32_t ver_res, void *draw_buf, uint32_t buf_size_bytes) {
     static int selector = -1;
     
     a9160_Init(hor_res, ver_res);
     selector = get_a9160_fb_selector();
-        
+
     lv_display_t *disp = lv_display_create(hor_res, ver_res);
-    lv_display_set_flush_cb(disp, vortex86_disp_flush);
+    lv_display_set_flush_cb(disp, _86duino_disp_flush);
     lv_display_set_buffers(disp, draw_buf, NULL, buf_size_bytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_user_data(disp, (void*)&selector);
     
     return disp;
 }
 
-lv_display_t * lv_vortex86_lcd_create(int32_t hor_res, int32_t ver_res, void * draw_buf, uint32_t buf_size_bytes) {
+lv_display_t * lv_86duino_lcd_create(int32_t hor_res, int32_t ver_res, void * draw_buf, uint32_t buf_size_bytes) {
     static int selector = -1;
     
     if (hor_res == 1280 && ver_res == 1024)
@@ -138,11 +139,29 @@ lv_display_t * lv_vortex86_lcd_create(int32_t hor_res, int32_t ver_res, void * d
     selector = get_lcd_fb_selector();
         
     lv_display_t *disp = lv_display_create(hor_res, ver_res);
-    lv_display_set_flush_cb(disp, vortex86_disp_flush);
+    lv_display_set_flush_cb(disp, _86duino_disp_flush);
     lv_display_set_buffers(disp, draw_buf, NULL, buf_size_bytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_user_data(disp, (void*)&selector);
     
     return disp;
+}
+
+lv_display_t * lv_86duino_display_create(void * draw_buf, uint32_t buf_size_bytes) {
+    #if defined (__86DUINO_QEC_M02)
+        return lv_86duino_vga_create(1280, 720, draw_buf, buf_size_bytes);
+    #elif defined (__86DUINO_QEC_7) || defined (__86DUINO_QEC_9) || defined (__86DUINO_ONE)
+        return lv_86duino_vga_create(800, 480, draw_buf, buf_size_bytes);
+    #elif defined (__86DUINO_QEC_15)
+        return lv_86duino_vga_create(1024, 768, draw_buf, buf_size_bytes);
+    #elif  defined (__86DUINO_QEC_PPC9) || defined (__86DUINO_DUO)
+        return lv_86duino_vga_create(1024, 600, draw_buf, buf_size_bytes);
+    #elif defined (__86DUINO_QEC_PPC104)
+        return lv_86duino_vga_create(800, 600, draw_buf, buf_size_bytes);
+    #elif defined (__86DUINO_QEC)
+        return lv_86duino_lcd_create(800, 480, draw_buf, buf_size_bytes);
+    #endif
+    
+    return NULL; // if we selected __86DUINO_QEC_M2 board
 }
 
 #endif /*LV_USE_VORTEX86*/

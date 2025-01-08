@@ -18,7 +18,7 @@ extern "C" {
 #include "sdl/lv_sdl_mousewheel.h"
 #include "sdl/lv_sdl_keyboard.h"
 
-#include "vortex86/lv_vortex86.h"
+#include "86duino/lv_86duino.h"
 
 #include "x11/lv_x11.h"
 

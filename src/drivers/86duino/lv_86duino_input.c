@@ -1,11 +1,12 @@
-#include "lv_vortex86.h"
+#include "lv_86duino.h"
 
-#if LV_USE_VORTEX86
+#if LV_USE_86DUINO
 
 #define ALLEGRO_HAVE_STDINT_H
 #include <allegro.h> // Need it when we use the USB mouse/keyboard
 
-#include "../src/drivers/vortex86/touchpanel.h"
+#include "v86board.h"
+#include "../src/drivers/86duino/touchpanel.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -16,6 +17,7 @@ typedef struct _tp {
     double DAY;
     double DBY;
     double DDY;
+    bool TP_ENABLED;
     bool MOUSE_ENABLED;
 } TPD;
 
@@ -27,46 +29,54 @@ static void setInputData(lv_indev_t * indev, int inputType) {
     
     TPD* tpd = (TPD*)malloc(sizeof(TPD));
     
-    // Default value
-    tpd->DAX = -0.424629;
-    tpd->DBX = -0.002177;
-    tpd->DDX = 834.603571;
-    tpd->DAY = -0.000115;
-    tpd->DBY = -0.292238;
-    tpd->DDY = 537.392779;
-    
-    // Update value from QEC 
-    FILE* fp = fopen("B:\\TP_CAL3.txt", "r");
-    if (fp != NULL) {
-        for (i=0; i<128 && (c = fgetc(fp)) != ','; i++)
-            floatchr[i] = c;
-        floatchr[i] = '\0';
-        tpd->DAX = atof(floatchr);
-        for (int i=0; i<128 && (c = fgetc(fp)) != ','; i++)
-            floatchr[i] = c;
-        floatchr[i] = '\0';
-        tpd->DBX = atof(floatchr);
-        for (int i=0; i<128 && (c = fgetc(fp)) != '\n'; i++)
-            floatchr[i] = c;
-        floatchr[i] = '\0';
-        tpd->DDX = atof(floatchr);
-        for (i=0; i<128 && (c = fgetc(fp)) != ','; i++)
-            floatchr[i] = c;
-        floatchr[i] = '\0';
-        tpd->DAY = atof(floatchr);
-        for (int i=0; i<128 && (c = fgetc(fp)) != ','; i++)
-            floatchr[i] = c;
-        floatchr[i] = '\0';
-        tpd->DBY = atof(floatchr);
-        for (int i=0; i<128 && (c = fgetc(fp)) != '\n'; i++)
-            floatchr[i] = c;
-        floatchr[i] = '\0';
-        tpd->DDY = atof(floatchr);
+    if (inputType == LV_86DUINO_INPUT_ONLY_TOUCHPAD || inputType == LV_86DUINO_INPUT_TOUCHPAD_KBMS) {
+        // Default value
+        tpd->DAX = -0.424629;
+        tpd->DBX = -0.002177;
+        tpd->DDX = 834.603571;
+        tpd->DAY = -0.000115;
+        tpd->DBY = -0.292238;
+        tpd->DDY = 537.392779;
+        tpd->TP_ENABLED = true;
         
-        fclose(fp);
-    }
+        // Update value from QEC 
+        FILE* fp = fopen("B:\\TP_CAL3.txt", "r");
+        if (fp != NULL) {
+            for (i=0; i<128 && (c = fgetc(fp)) != ','; i++)
+                floatchr[i] = c;
+            floatchr[i] = '\0';
+            tpd->DAX = atof(floatchr);
+            for (int i=0; i<128 && (c = fgetc(fp)) != ','; i++)
+                floatchr[i] = c;
+            floatchr[i] = '\0';
+            tpd->DBX = atof(floatchr);
+            for (int i=0; i<128 && (c = fgetc(fp)) != '\n'; i++)
+                floatchr[i] = c;
+            floatchr[i] = '\0';
+            tpd->DDX = atof(floatchr);
+            for (i=0; i<128 && (c = fgetc(fp)) != ','; i++)
+                floatchr[i] = c;
+            floatchr[i] = '\0';
+            tpd->DAY = atof(floatchr);
+            for (int i=0; i<128 && (c = fgetc(fp)) != ','; i++)
+                floatchr[i] = c;
+            floatchr[i] = '\0';
+            tpd->DBY = atof(floatchr);
+            for (int i=0; i<128 && (c = fgetc(fp)) != '\n'; i++)
+                floatchr[i] = c;
+            floatchr[i] = '\0';
+            tpd->DDY = atof(floatchr);
+            
+            fclose(fp);
+        }
+        
+        touchpanel_init(); // QEC LCD touch init
+        
+    } else
+        tpd->TP_ENABLED = false;
     
-    if (inputType == LV_VORTEX86_INPUT_INCLUDE_KBMS)
+    
+    if (inputType == LV_86DUINO_INPUT_ONLY_KBMS || inputType == LV_86DUINO_INPUT_TOUCHPAD_KBMS)
         tpd->MOUSE_ENABLED = true;
     else
         tpd->MOUSE_ENABLED = false;
@@ -87,23 +97,25 @@ static void touch_mouse_event(lv_indev_t * indev, lv_indev_data_t * data)
     
     TPD* tpd = (TPD*)lv_indev_get_user_data(indev);
     
-    isPress = get_touchXY(&dx, &dy);
-    
-    if (isPress) {
-        newX = dx * tpd->DAX + dy * tpd->DBX + tpd->DDX;
-        newY = dx * tpd->DAY + dy * tpd->DBY + tpd->DDY;
+    if (tpd->TP_ENABLED) {
+        isPress = get_touchXY(&dx, &dy);
         
-        if (newX < 0) newX = 0;
-        else if (newX > hor_res) newX = hor_res;
-        
-        if (newY < 0) newY = 0;
-        else if (newY > ver_res) newY = ver_res;
-        
-        data->point.x = pre_dx = newX;
-        data->point.y = pre_dy = newY;
-    } else {
-        data->point.x = pre_dx;
-        data->point.y = pre_dy;
+        if (isPress) {
+            newX = dx * tpd->DAX + dy * tpd->DBX + tpd->DDX;
+            newY = dx * tpd->DAY + dy * tpd->DBY + tpd->DDY;
+            
+            if (newX < 0) newX = 0;
+            else if (newX > hor_res) newX = hor_res;
+            
+            if (newY < 0) newY = 0;
+            else if (newY > ver_res) newY = ver_res;
+            
+            data->point.x = pre_dx = newX;
+            data->point.y = pre_dy = newY;
+        } else {
+            data->point.x = pre_dx;
+            data->point.y = pre_dy;
+        }
     }
     
     if (tpd->MOUSE_ENABLED) {
@@ -160,24 +172,40 @@ static void keyboard_event(lv_indev_t * indev, lv_indev_data_t * data)
     }
 }
 
-void lv_vortex86_inputs_create(lv_display_t * disp, int inputType, lv_image_dsc_t const * mouse_img)
+void lv_86duino_inputs_create(lv_display_t * disp, int inputType, lv_image_dsc_t const * mouse_img)
 {
     lv_group_t* _inp_group;
+    bool kbms_enabled = false;
+    
+    if (disp == NULL) return; // if we selected __86DUINO_QEC_M2 board
     
     lv_indev_t * tp_ms = lv_indev_create();
-    lv_indev_set_type(tp_ms, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
+    lv_indev_set_type(tp_ms, LV_INDEV_TYPE_POINTER); /*Touchpad or Mouse should have POINTER type*/
     lv_indev_set_read_cb(tp_ms, touch_mouse_event);
     lv_indev_set_driver_data(tp_ms, disp);
+
+    if (inputType == LV_86DUINO_INPUT_AUTO) {
+        #if defined (__86DUINO_QEC_M02) || defined (__86DUINO_ONE) || defined (__86DUINO_DUO) // Only screen and USB
+        setInputData(tp_ms, LV_86DUINO_INPUT_ONLY_KBMS);
+        kbms_enabled = true;
+        #elif defined (__86DUINO_QEC)
+        setInputData(tp_ms, LV_86DUINO_INPUT_ONLY_TOUCHPAD);
+        #else // Touchpad and USB
+        setInputData(tp_ms, LV_86DUINO_INPUT_TOUCHPAD_KBMS);
+        kbms_enabled = true;
+        #endif
+    } else {
+        setInputData(tp_ms, inputType);
+        if (inputType == LV_86DUINO_INPUT_ONLY_KBMS || inputType == LV_86DUINO_INPUT_TOUCHPAD_KBMS)
+            kbms_enabled = true;
+    }
 
     _inp_group = lv_group_create();
     lv_group_set_default(_inp_group);
     lv_indev_set_group(tp_ms, _inp_group);
     
-    setInputData(tp_ms, inputType);
-    touchpanel_init(); // QEC LCD touch init
-    
     // If use USB keyboard/mouse
-    if (inputType == LV_VORTEX86_INPUT_INCLUDE_KBMS) {
+    if (kbms_enabled) {
         lv_obj_t * mouse_cursor =  lv_image_create(lv_screen_active());
         if (mouse_img == NULL) {
             extern const lv_image_dsc_t mouse_cursor_icon;

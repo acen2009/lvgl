@@ -1098,7 +1098,7 @@
  * DEVICES
  *==================*/
 
-#define LV_USE_VORTEX86         1
+#define LV_USE_86DUINO          1
 
 /** Use SDL to open window on PC and handle mouse and keyboard. */
 #define LV_USE_SDL              0
