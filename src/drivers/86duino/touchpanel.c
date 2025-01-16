@@ -323,9 +323,10 @@ bool get_touchXY(int* dataX, int* dataY) {
     if(kbd_obf())
     {
       st = (kbd_status() & 0x20) >> 5;
+      if(st == 0)
+        return false;  // from keyboard, quit
       d = kbd_read();     // read data uint8_t
-      // if(st == 0)
-      //  return false;  // from keyboard, quit
+      
       // printf("%02X ", d);
       if(i == 0)
       {
