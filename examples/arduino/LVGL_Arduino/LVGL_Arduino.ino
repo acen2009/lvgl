@@ -100,14 +100,11 @@ void setup()
 
 #else
     /*Else create a display yourself*/
-    disp = lv_vortex86_vga_create(TFT_HOR_RES, TFT_VER_RES, draw_buf, sizeof(draw_buf));
-    lv_vortex86_inputs_create(disp, LV_VORTEX86_INPUT_INCLUDE_KBMS, NULL);
+    disp = lv_86duino_display_create(draw_buf, sizeof(draw_buf));
 #endif
 
     /*Initialize the (dummy) input device driver*/
-    // lv_indev_t * indev = lv_indev_create();
-    // lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
-    // lv_indev_set_read_cb(indev, my_touchpad_read);
+    lv_86duino_inputs_create(disp, LV_86DUINO_INPUT_AUTO, NULL);
 
     /* Create a simple label
      * ---------------------
@@ -127,14 +124,12 @@ void setup()
 
      lv_demo_widgets();
      */
-     
-    lv_demo_widgets();
-
-    // lv_obj_t *label = lv_label_create( lv_screen_active() );
-    // lv_label_set_text( label, "Hello Arduino, I'm LVGL!" );
-    // lv_obj_align( label, LV_ALIGN_CENTER, 0, 0 );
-    
-    // Serial.println( "Setup done" );
+     lv_demo_widgets();
+//    lv_obj_t *label = lv_label_create( lv_screen_active() );
+//    lv_label_set_text( label, "Hello Arduino, I'm LVGL!" );
+//    lv_obj_align( label, LV_ALIGN_CENTER, 0, 0 );
+//
+//    Serial.println( "Setup done" );
 }
 
 void loop()
