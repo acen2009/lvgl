@@ -130,7 +130,7 @@ lv_display_t * lv_86duino_lcd_create(int32_t hor_res, int32_t ver_res, void * dr
         lcd_on(1);
     else if (hor_res == 800 && ver_res == 480)
         lcd_on(2);
-    else if (hor_res == 600 && ver_res == 480)
+    else if (hor_res == 640 && ver_res == 480)
         lcd_on(3);
     else {
         return NULL;
@@ -153,12 +153,14 @@ lv_display_t * lv_86duino_display_create(void * draw_buf, uint32_t buf_size_byte
         return lv_86duino_vga_create(800, 480, draw_buf, buf_size_bytes);
     #elif defined (__86DUINO_QEC_15)
         return lv_86duino_vga_create(1024, 768, draw_buf, buf_size_bytes);
-    #elif  defined (__86DUINO_QEC_PPC9) || defined (__86DUINO_DUO)
+    #elif  defined (__86DUINO_QEC_PPC9)// || defined (__86DUINO_DUO)
         return lv_86duino_vga_create(1024, 600, draw_buf, buf_size_bytes);
     #elif defined (__86DUINO_QEC_PPC104)
         return lv_86duino_vga_create(800, 600, draw_buf, buf_size_bytes);
     #elif defined (__86DUINO_QEC)
         return lv_86duino_lcd_create(800, 480, draw_buf, buf_size_bytes);
+    #elif defined (__86DUINO_DUO)
+        return lv_86duino_lcd_create(640, 480, draw_buf, buf_size_bytes);
     #endif
     
     return NULL; // if we selected __86DUINO_QEC_M2 board
